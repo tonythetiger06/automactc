@@ -51,7 +51,8 @@ log = logging.getLogger(_modName)
 
 _headers = ['local_hostname', 'computer_name', 'hostname', 'model',
             'product_version', 'product_build_version', 'serial_no', 'volume_created',
-            'system_tz', 'amtc_runtime', 'ipaddress', 'fvde_status']
+            'system_tz', 'amtc_runtime', 'ipaddress', 'fvde_status','gatekeeper_status',
+            'sip_status']
 
 
 def module():
@@ -105,14 +106,27 @@ def module():
             record['fvde_status'] = "On"
         else:
             record['fvde_status'] = "Off"
+
+        gatekeeper = subprocess.Popen(["spctl","--status"], stdout=subprocess.PIPE).communicate()
+        record['gatekeeper_status'] = gatekeeper[0]
+
+        sip = subprocess.Popen(["csrutil","status"], stdout=subprocess.PIPE).communicate()
+        record['sip_status'] = sip[0][36:]
+
     else:
         try:
             record['system_tz'] = globalpreferences[0]['com.apple.TimeZonePref.Last_Selected_City'][3]
         except Exception, e:
-            log.error("Could not get system timezone: {0}".format([traceback.format_exc()]))
-            record['system_tz'] = "ERROR"
+            try:
+                record['system_tz'] = os.readlink(os.path.join(inputdir, 'etc/localtime'))[26:]
+            except Exception:
+                log.error("Could not get system timezone")
+                record['system_tz'] = "ERROR"
+            
 
         record['fvde_status'] = "NA"
+        record['gatekeeper_status'] = "NA"
+        record['sip_status'] = "NA"
 
     # PROVIDE OUTPUT LINE, AND WRITE TO OUTFILE
     line = record.values()

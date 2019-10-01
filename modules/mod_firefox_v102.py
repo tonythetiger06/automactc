@@ -68,7 +68,7 @@ def connect_to_db(db_location, main_table):
         error = [x for x in traceback.format_exc().split('\n') if x.startswith("OperationalError")]
         log.debug("Could not connect [{0}].".format(error[0]))
 
-        if "database is locked" in error[0]:
+        if "database is locked" or "unable to open" in error[0]:
             tmpdb = os.path.basename(db_location)+'-tmp'
             log.debug("Trying to connect to db copied to temp location...")
 
